@@ -5,3 +5,4 @@ langchain-community
 langchain-openai
 PyPDF2
 langchain-core
+dotenv
