@@ -6,3 +6,4 @@ langchain-openai
 PyPDF2
 langchain-core
 dotenv
+faiss-cpu
