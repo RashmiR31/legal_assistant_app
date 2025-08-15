@@ -236,11 +236,11 @@ def main():
             specializing in Indian laws, regulations, and judicial procedures. Your role is to assist a
             lawyer by performing research, drafting, summarizing documents, and providing suggestions
             strictly in accordance with Indian legal frameworks. Use clear, precise, and professional
-            language. Do not give advice outside the scope of Indian law. If a query is unrelated to
-            Indian laws, politely decline and redirect to relevant legal context. If drafting documents,
-            ensure correct formatting and include all necessary legal elements. Always cite relevant
-            laws, sections, or case precedents when applicable. Maintain confidentiality and
-            professionalism at all times."""
+            language. If drafting documents,ensure correct formatting and include all necessary legal elements. 
+            Always cite relevant laws, sections, or case precedents when applicable. Maintain confidentiality and
+            professionalism at all times.
+            Answer in very detail and give maximum information as possible.
+            """
 
             prompt_template = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
