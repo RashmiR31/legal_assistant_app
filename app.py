@@ -9,6 +9,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.prompts import ChatPromptTemplate
+from langchain.chains.question_answering import load_qa_chain
+from langchain.chains import LLMChain
 
 from difflib import unified_diff
 from html_templates import css, bot_template, user_template
@@ -72,37 +74,99 @@ def chunk_text_with_metadata(pages_data):
     return chunks_with_meta
 
 def build_vectorstore(all_chunks):
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     texts = [c["text"] for c in all_chunks]
     metadatas = [c["metadata"] for c in all_chunks]
     return FAISS.from_texts(texts=texts, embedding=embeddings, metadatas=metadatas)
 
 # ---------------- Conversation ---------------- #
-def build_conversation_chain(vectorstore):
-    llm = ChatOpenAI(temperature=0)
-    custom_prompt = """
-    You are a legal assistant AI. Answer based strictly on the provided context.
-    - Always cite the exact clause, section, or page from the source document.
-    - Be concise but legally precise.
-    - Ensure you provide all the details and a little more than what is asked in order to be helpful.
-    - If the answer is not in the context, say: "The document does not provide this information."
+# def build_conversation_chain(vectorstore):
+#     llm = ChatOpenAI(temperature=0.1, model="gpt-4o-mini")
+#     custom_prompt = """
+#     You are a legal assistant AI. Help a lawyer review the documents and give answers to their questions. Answer based strictly on the provided context.
+#     - Always cite the exact clause, section, or page from the source document.
+#     - Be concise but legally precise.
+#     - Ensure you provide all the details and a little more than what is asked in order to be helpful.
+#     - If the answer is not in the context, say: "The document does not provide this information."
 
-    Context:
+#     Context:
+#     {context}
+
+#     Question:
+#     {question}
+
+#     Answer:
+#     """
+#     prompt = PromptTemplate(template=custom_prompt, input_variables=["context", "question"])
+#     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
+
+#     return ConversationalRetrievalChain.from_llm(
+#         llm=llm,
+#         retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),
+#         memory=memory,
+#         combine_docs_chain_kwargs={"prompt": prompt},
+#         return_source_documents=True,
+#         output_key="answer"
+#     )
+def build_conversation_chain(vectorstore):
+    llm = ChatOpenAI(temperature=0, model="gpt-4o-mini")
+
+    # Custom Legal Assistant Prompt
+
+    custom_prompt = PromptTemplate(
+    template="""
+    You are a legal assistant AI. 
+    Answer the question strictly using the information in the provided context. Help a lawyer review the documents and give answers to their questions. 
+
+    Rules:
+    - Only use the provided context to answer.
+    - Always cite the page number and clause/section when possible.
+    - Do not make assumptions or give generic legal advice.
+    - Ensure you provide all the details and a little more than what is asked in order to be helpful.
+
+    Context from the document:
     {context}
 
     Question:
     {question}
 
     Answer:
-    """
-    prompt = PromptTemplate(template=custom_prompt, input_variables=["context", "question"])
-    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
+    """,
+    input_variables=["context", "question"]
+    )
 
-    return ConversationalRetrievalChain.from_llm(
+
+    # Chain to insert context properly
+    qa_chain = load_qa_chain(
         llm=llm,
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
+        chain_type="stuff",
+        prompt=custom_prompt
+    )
+
+    # Question rephraser prompt
+    question_gen_prompt = PromptTemplate(
+        template="""Given the chat history and the follow up question,
+rephrase the follow up question to be a standalone question.
+
+Chat history:
+{chat_history}
+Follow up question: {question}
+Standalone question:""",
+        input_variables=["chat_history", "question"]
+    )
+    question_generator = LLMChain(llm=llm, prompt=question_gen_prompt)
+
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True,
+        output_key="answer"
+    )
+
+    return ConversationalRetrievalChain(
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 8}),
+        combine_docs_chain=qa_chain,
+        question_generator=question_generator,
         memory=memory,
-        combine_docs_chain_kwargs={"prompt": prompt},
         return_source_documents=True,
         output_key="answer"
     )
@@ -247,7 +311,7 @@ def main():
                 ("human", "{question}")
             ])
 
-            llm = ChatOpenAI(temperature=0)
+            llm = ChatOpenAI(temperature=0, model="gpt-4o-mini")
 
             # Format prompt with user question
             formatted_prompt = prompt_template.format(question=user_input)
