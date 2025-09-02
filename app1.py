@@ -150,7 +150,7 @@ def build_faiss_index(docs: List[Document], persist_dir: str = PERSIST_DIR) -> F
             index = FAISS.from_documents(docs, embeddings, allow_dangerous_deserialization=True)
             index.save_local(persist_dir)
     else:
-        index = FAISS.from_documents(docs, embeddings, allow_dangerous_deserialization=True)
+        index = FAISS.from_documents(docs, embeddings)
         index.save_local(persist_dir)
     return index
 
@@ -177,6 +177,23 @@ def ingest_files(file_paths: List[str], persist_dir: str = PERSIST_DIR):
     index = build_faiss_index(all_docs, persist_dir=persist_dir)
     return index
 
+def clear_cache():
+    # Delete cached files, reset FAISS and embeddings
+    # Clear uploaded documents if stored in a folder (example 'uploads' directory)
+    if os.path.exists("uploads"):
+        shutil.rmtree("uploads")
+    if os.path.exists("faiss_index"):
+        shutil.rmtree("faiss_index")
+
+    # Reset the FAISS index (clear the old index from memory)
+    if 'faiss_index' in st.session_state:
+        del st.session_state['faiss_index']
+
+    # Also reset any session state variables if needed
+    if 'uploaded_files' in st.session_state:
+        del st.session_state['uploaded_files']
+    if 'chat_history' in st.session_state:
+        del st.session_state['chat_history']
 
 # -----------------------------
 # Streamlit app UI
@@ -206,7 +223,11 @@ if "logs" not in st.session_state:
 # Sidebar: upload + ingest
 with st.sidebar.form(key="upload_form"):
     uploaded_files = st.file_uploader("Upload one or more documents", accept_multiple_files=True, type=["pdf", "docx", "txt"], help="Limit 200MB per file")
-    ingest_btn = st.form_submit_button("Ingest / (re)build index")
+    ingest_btn = st.form_submit_button("Ingest / rebuild index")
+
+# Reset button UI    
+reset_btn = st.button("Reset All")
+    
 
 if ingest_btn:
     if not uploaded_files:
@@ -226,6 +247,10 @@ if ingest_btn:
         except Exception as e:
             st.sidebar.error(f"Ingest failed: {e}")
             st.sidebar.text(traceback.format_exc())
+
+if reset_btn:
+    clear_cache()
+    st.success("System reset! You can upload new documents now.")
 
 # Try to load index from disk if session doesn't have one
 if st.session_state.index is None and os.path.exists(PERSIST_DIR):
