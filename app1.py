@@ -147,10 +147,10 @@ def build_faiss_index(docs: List[Document], persist_dir: str = PERSIST_DIR) -> F
             index.save_local(persist_dir)
         except Exception:
             # If load fails, create new index from scratch
-            index = FAISS.from_documents(docs, embeddings)
+            index = FAISS.from_documents(docs, embeddings, allow_dangerous_deserialization=True)
             index.save_local(persist_dir)
     else:
-        index = FAISS.from_documents(docs, embeddings)
+        index = FAISS.from_documents(docs, embeddings, allow_dangerous_deserialization=True)
         index.save_local(persist_dir)
     return index
 
@@ -231,7 +231,7 @@ if ingest_btn:
 if st.session_state.index is None and os.path.exists(PERSIST_DIR):
     try:
         embeddings = OpenAIEmbeddings()
-        st.session_state.index = FAISS.load_local(PERSIST_DIR, embeddings)
+        st.session_state.index = FAISS.load_local(PERSIST_DIR, embeddings, allow_dangerous_deserialization=True)
         st.sidebar.success("Loaded index from disk.")
     except Exception as e:
         st.sidebar.error(f"Failed to load index: {e}")
