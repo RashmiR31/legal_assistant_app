@@ -7,3 +7,4 @@ PyPDF2
 langchain-core
 dotenv
 faiss-cpu
+pypdf
