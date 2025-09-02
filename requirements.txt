@@ -8,3 +8,7 @@ langchain-core
 dotenv
 faiss-cpu
 pypdf
+python-docx 
+pytesseract 
+pdf2image 
+pillow
