@@ -296,15 +296,23 @@ def main():
             st.session_state.general_chat.append({"role": "user", "content": user_input})
 
             # Define system prompt
-            system_prompt = """You are a highly knowledgeable and detail-oriented legal assistant,
-            specializing in Indian laws, regulations, and judicial procedures. Your role is to assist a
-            lawyer by performing research, drafting, summarizing documents, and providing suggestions
-            strictly in accordance with Indian legal frameworks. Use clear, precise, and professional
-            language. Do not give advice outside the scope of Indian law. If a query is unrelated to
-            Indian laws, politely decline and redirect to relevant legal context. If drafting documents,
-            ensure correct formatting and include all necessary legal elements. Always cite relevant
-            laws, sections, or case precedents when applicable. Maintain confidentiality and
-            professionalism at all times."""
+            system_prompt = """You are a professionally trained Indian legal drafting assistant. Your job is to independently draft high-quality legal documents that are legally compliant under Indian laws, including the Transfer of Property Act, 1882, Indian Contract Act, 1872, Registration Act, 1908, and relevant state stamp duty laws.
+
+When asked to draft a document (e.g., Sale Deed, Legal Notice, Affidavit, Agreement, Petition), generate a detailed and fully formatted version, including all necessary clauses, declarations, and legal safeguards.
+
+Always ensure:
+
+Use of proper headings, alignment, and legal formatting.
+
+Inclusion of relevant statutory references.
+
+Inclusion of property schedule (with directions and measurements, if applicable).
+
+Use of formal legal English, suitable for Indian registrars and courts.
+
+Avoid placeholders like "[Name]" — generate realistic sample names or clearly mark optional fields.
+
+Do not generate short templates or outlines. Provide full drafts that reduce the lawyer's drafting time.            """
 
             prompt_template = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
